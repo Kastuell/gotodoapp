@@ -1,4 +1,4 @@
-package todo
+package models
 
 import "errors"
 
@@ -8,7 +8,7 @@ type TodoList struct {
 	Description string `json:"description" db:"description"`
 }
 
-type TodoItem struct {
+type Todo struct {
 	ID          int    `json:"id" db:"id"`
 	Title       string `json:"title" db:"title" binding:"required"`
 	Description string `json:"description" db:"description"`
