@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/kastuell/gotodoapp/internal/auth"
 	"github.com/kastuell/gotodoapp/internal/config"
 	"github.com/kastuell/gotodoapp/internal/database/postgres"
@@ -22,8 +23,8 @@ import (
 )
 
 func Run(cfgPath string) {
+	godotenv.Load()
 	logrus.SetFormatter(new(logrus.JSONFormatter))
-
 	cfg, err := config.Init(cfgPath)
 	if err != nil {
 		logrus.Error(err)
@@ -71,7 +72,7 @@ func Run(cfgPath string) {
 		}
 	}()
 
-	logrus.Printf("server started on port: %s", os.Getenv("PORT"))
+	logrus.Printf("server started on port: %s", cfg.HTTP.Port)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGTERM, syscall.SIGINT)
