@@ -1,38 +1,61 @@
 package service
 
 import (
-	"github.com/kastuell/gotodoapp/internal/models"
+	"context"
+	"time"
+
+	"github.com/kastuell/gotodoapp/internal/auth"
+	"github.com/kastuell/gotodoapp/internal/domain"
+	"github.com/kastuell/gotodoapp/internal/hash"
 	"github.com/kastuell/gotodoapp/internal/repository"
 )
 
+type Tokens struct {
+	AccessToken  string
+	RefreshToken string
+}
+
 type User interface {
-	GetMe(id int) (models.User, error)
+	GetMe(id int) (domain.User, error)
 }
 
 type Auth interface {
-	Register(user models.User) (string, error)
-	Login(username, password string) (string, error)
-	ParseToken(token string) (int, error)
+	Register(ctx context.Context, input domain.User) (Tokens, error)
+	Login(ctx context.Context, username, password string) (Tokens, error)
 }
 
-type TodoItem interface {
-	Create(userId, listId int, item models.Todo) (models.Todo, error)
-	GetAll(userId, listId int) ([]models.Todo, error)
-	GetById(userId, itemId int) (models.Todo, error)
+type Todo interface {
+	Create(userId, listId int, item domain.Todo) (domain.Todo, error)
+	GetAll(userId, listId int) ([]domain.Todo, error)
+	GetById(userId, itemId int) (domain.Todo, error)
 	Delete(userId, itemId int) error
-	Update(userId, itemId int, input models.UpdateItemInput) error
+	Update(userId, itemId int, input domain.UpdateTodoInput) error
 }
 
-type Service struct {
-	TodoItem
+type Services struct {
+	Todo
 	Auth
 	User
 }
 
-func NewService(repos *repository.Repository) *Service {
-	return &Service{
-		TodoItem: NewTodoItemService(repos.TodoItem, repos.TodoList),
-		Auth:     NewAuthService(repos.User),
-		User:     NewUserService(repos.User),
+type NewServiceDeps struct {
+	Repos           *repository.Repositories
+	TokenManager    auth.TokenManager
+	AccessTokenTTL  time.Duration
+	RefreshTokenTTL time.Duration
+	Hasher          hash.PasswordHasher
+}
+
+func NewService(deps NewServiceDeps) *Services {
+	return &Services{
+		Todo: NewTodoService(deps.Repos.Todo, deps.Repos.TodoList),
+		Auth: NewAuthService(NewAuthServiceDeps{
+			tokenManager:    deps.TokenManager,
+			repo:            deps.Repos.User,
+			hasher:          deps.Hasher,
+			accessTokenTTL:  deps.AccessTokenTTL,
+			refreshTokenTTL: deps.RefreshTokenTTL,
+		}),
+		User: NewUserService(deps.Repos.User),
 	}
 }

@@ -2,40 +2,40 @@ package repository
 
 import (
 	"github.com/jmoiron/sqlx"
-	"github.com/kastuell/gotodoapp/internal/models"
+	"github.com/kastuell/gotodoapp/internal/domain"
 )
 
 type User interface {
-	Create(user models.User) (int, error)
+	Create(user domain.User) (int, error)
 	GetIdByCredits(username, password_hash string) (int, error)
-	GetById(id int) (models.User, error)
+	GetById(id int) (domain.User, error)
 }
 
-type TodoItem interface {
-	Create(listId int, item models.Todo) (models.Todo, error)
-	GetAllByUserId(userId, listId int) ([]models.Todo, error)
-	GetById(userId, itemId int) (models.Todo, error)
+type Todo interface {
+	Create(listId int, item domain.Todo) (domain.Todo, error)
+	GetAllByUserId(userId, listId int) ([]domain.Todo, error)
+	GetById(userId, itemId int) (domain.Todo, error)
 	Delete(userId, itemId int) error
-	Update(userId, itemId int, input models.UpdateItemInput) error
+	Update(userId, itemId int, input domain.UpdateTodoInput) error
 }
 
 type TodoList interface {
-	Create(todo models.TodoList) (models.TodoList, error)
-	GetAll(id int) ([]models.TodoList, error)
-	GetById(userId, listId int) (models.TodoList, error)
+	Create(todo domain.TodoList) (domain.TodoList, error)
+	GetAll(id int) ([]domain.TodoList, error)
+	GetById(userId, listId int) (domain.TodoList, error)
 	Delete(id int) (bool, error)
-	Update(models.TodoList) (models.TodoList, error)
+	Update(domain.TodoList) (domain.TodoList, error)
 }
 
-type Repository struct {
+type Repositories struct {
 	User
-	TodoItem
+	Todo
 	TodoList
 }
 
-func NewRepository(db *sqlx.DB) *Repository {
-	return &Repository{
-		TodoItem: NewTodoItemPostgres(db),
-		User:     NewUserPostgres(db),
+func NewRepository(db *sqlx.DB) *Repositories {
+	return &Repositories{
+		Todo: NewTodoItemPostgres(db),
+		User: NewUserPostgres(db),
 	}
 }

@@ -1,4 +1,4 @@
-package models
+package domain
 
 import "errors"
 
@@ -40,13 +40,13 @@ func (i UpdateListInput) Validate() error {
 	return nil
 }
 
-type UpdateItemInput struct {
+type UpdateTodoInput struct {
 	Title       *string `json:"title"`
 	Description *string `json:"description"`
 	Done        *bool   `json:"done"`
 }
 
-func (i UpdateItemInput) Validate() error {
+func (i UpdateTodoInput) Validate() error {
 	if i.Title == nil && i.Description == nil && i.Done == nil {
 		return errors.New("update structure has no values")
 	}

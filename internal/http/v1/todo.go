@@ -1,14 +1,25 @@
-package handler
+package v1
 
 import (
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kastuell/gotodoapp/internal/models"
+	"github.com/kastuell/gotodoapp/internal/domain"
 )
 
-func (h *Handler) createItem(c *gin.Context) {
+func (h *Handler) initTodoRoutes(api *gin.RouterGroup) {
+	todo := api.Group("/todo", h.userIdentity)
+	{
+		todo.POST("", h.createTodo)
+		todo.GET("", h.getAllTodos)
+		todo.GET(":id", h.getTodoById)
+		todo.PATCH(":id", h.updateTodo)
+		todo.DELETE(":id", h.deleteTodo)
+	}
+}
+
+func (h *Handler) createTodo(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
@@ -21,24 +32,22 @@ func (h *Handler) createItem(c *gin.Context) {
 		return
 	}
 
-	var input models.Todo
+	var input domain.Todo
 	if err := c.BindJSON(&input); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	id, err := h.services.TodoItem.Create(userId, listId, input)
+	todo, err := h.services.Todo.Create(userId, listId, input)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]interface{}{
-		"id": id,
-	})
+	c.JSON(http.StatusOK, todo)
 }
 
-func (h *Handler) getAllItems(c *gin.Context) {
+func (h *Handler) getAllTodos(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
@@ -51,38 +60,38 @@ func (h *Handler) getAllItems(c *gin.Context) {
 		return
 	}
 
-	items, err := h.services.TodoItem.GetAll(userId, listId)
+	todos, err := h.services.Todo.GetAll(userId, listId)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, items)
+	c.JSON(http.StatusOK, todos)
 }
 
-func (h *Handler) getItemById(c *gin.Context) {
+func (h *Handler) getTodoById(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	itemId, err := strconv.Atoi(c.Param("id"))
+	todoId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, "invalid list id param")
 		return
 	}
 
-	item, err := h.services.TodoItem.GetById(userId, itemId)
+	todo, err := h.services.Todo.GetById(userId, todoId)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, item)
+	c.JSON(http.StatusOK, todo)
 }
 
-func (h *Handler) updateItem(c *gin.Context) {
+func (h *Handler) updateTodo(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
@@ -95,13 +104,13 @@ func (h *Handler) updateItem(c *gin.Context) {
 		return
 	}
 
-	var input models.UpdateItemInput
+	var input domain.UpdateTodoInput
 	if err := c.BindJSON(&input); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	if err := h.services.TodoItem.Update(userId, id, input); err != nil {
+	if err := h.services.Todo.Update(userId, id, input); err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -109,20 +118,20 @@ func (h *Handler) updateItem(c *gin.Context) {
 	c.JSON(http.StatusOK, statusResponse{"ok"})
 }
 
-func (h *Handler) deleteItem(c *gin.Context) {
+func (h *Handler) deleteTodo(c *gin.Context) {
 	userId, err := getUserId(c)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	itemId, err := strconv.Atoi(c.Param("id"))
+	todoId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		newErrorResponse(c, http.StatusBadRequest, "invalid list id param")
 		return
 	}
 
-	err = h.services.TodoItem.Delete(userId, itemId)
+	err = h.services.Todo.Delete(userId, todoId)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

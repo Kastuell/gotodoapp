@@ -6,7 +6,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kastuell/gotodoapp/internal/database/postgres"
-	"github.com/kastuell/gotodoapp/internal/models"
+	"github.com/kastuell/gotodoapp/internal/domain"
 )
 
 type TodoItemPostgres struct {
@@ -17,9 +17,9 @@ func NewTodoItemPostgres(db *sqlx.DB) *TodoItemPostgres {
 	return &TodoItemPostgres{db: db}
 }
 
-func (r *TodoItemPostgres) Create(listId int, item models.Todo) (models.Todo, error) {
+func (r *TodoItemPostgres) Create(listId int, item domain.Todo) (domain.Todo, error) {
 	tx, err := r.db.Begin()
-	var todoItem models.Todo
+	var todoItem domain.Todo
 	if err != nil {
 		return todoItem, err
 	}
@@ -43,8 +43,8 @@ func (r *TodoItemPostgres) Create(listId int, item models.Todo) (models.Todo, er
 	return todoItem, tx.Commit()
 }
 
-func (r *TodoItemPostgres) GetAllByUserId(userId, listId int) ([]models.Todo, error) {
-	var items []models.Todo
+func (r *TodoItemPostgres) GetAllByUserId(userId, listId int) ([]domain.Todo, error) {
+	var items []domain.Todo
 
 	query := fmt.Sprintf(`SELECT ti.id, ti.title, ti.description, ti.done FROM %s ti INNER JOIN %s li on li.item_id = ti.id
 									INNER JOIN %s ul on ul.list_id = li.list_id WHERE li.list_id = $1 AND ul.user_id = $2`,
@@ -57,8 +57,8 @@ func (r *TodoItemPostgres) GetAllByUserId(userId, listId int) ([]models.Todo, er
 	return items, nil
 }
 
-func (r *TodoItemPostgres) GetById(userId, itemId int) (models.Todo, error) {
-	var item models.Todo
+func (r *TodoItemPostgres) GetById(userId, itemId int) (domain.Todo, error) {
+	var item domain.Todo
 
 	query := fmt.Sprintf(`SELECT ti.id, ti.title, ti.description, ti.done FROM %s ti INNER JOIN %s li on li.item_id = ti.id
 	 INNER JOIN %s ul on ul.list_id == li.list_id WHERE ti.id = $1 AND ul.user_id = $2`, postgres.TodoItemsTable, postgres.ListsItemsTable, postgres.UsersListsTable)
@@ -78,7 +78,7 @@ func (r *TodoItemPostgres) Delete(userId, itemId int) error {
 	return err
 }
 
-func (r *TodoItemPostgres) Update(userId, itemId int, input models.UpdateItemInput) error {
+func (r *TodoItemPostgres) Update(userId, itemId int, input domain.UpdateTodoInput) error {
 	setValues := make([]string, 0)
 	args := make([]interface{}, 0)
 	argId := 1

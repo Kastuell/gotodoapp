@@ -1,94 +1,93 @@
 package service
 
 import (
-	"crypto/sha1"
-	"errors"
-	"fmt"
+	"context"
+	"strconv"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
-	"github.com/kastuell/gotodoapp/internal/models"
+	"github.com/kastuell/gotodoapp/internal/auth"
+	"github.com/kastuell/gotodoapp/internal/domain"
+	"github.com/kastuell/gotodoapp/internal/hash"
 	"github.com/kastuell/gotodoapp/internal/repository"
 )
 
-const (
-	salt       = "salt1salt1"
-	signingKey = "asdasd"
-	tokenTTL   = 12 * time.Hour
-)
-
-type tokenClaims struct {
-	jwt.StandardClaims
-	UserId int `json:"user_id"`
-}
-
 type AuthService struct {
-	repo repository.User
+	repo            repository.User
+	tokenManager    auth.TokenManager
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
+	hasher          hash.PasswordHasher
 }
 
-func NewAuthService(repo repository.User) *AuthService {
-	return &AuthService{repo: repo}
+type NewAuthServiceDeps struct {
+	tokenManager    auth.TokenManager
+	repo            repository.User
+	hasher          hash.PasswordHasher
+	accessTokenTTL  time.Duration
+	refreshTokenTTL time.Duration
 }
 
-func (s *AuthService) Register(user models.User) (string, error) {
+func NewAuthService(deps NewAuthServiceDeps) *AuthService {
+	return &AuthService{
+		repo:            deps.repo,
+		hasher:          deps.hasher,
+		accessTokenTTL:  deps.accessTokenTTL,
+		refreshTokenTTL: deps.refreshTokenTTL,
+	}
+}
 
-	user.Password = generatePasswordHash(user.Password)
+func (s *AuthService) Register(ctx context.Context, input domain.User) (Tokens, error) {
+	passwordHash, err := s.hasher.Hash(input.Password)
+
+	if err != nil {
+		return Tokens{}, err
+	}
+
+	user := domain.User{
+		Name:     input.Name,
+		Username: input.Username,
+		Password: passwordHash,
+	}
 
 	id, err := s.repo.Create(user)
+	if err != nil {
+		return Tokens{}, err
+	}
+
+	return s.createSession(ctx, strconv.Itoa(id))
+}
+
+func (s *AuthService) Login(ctx context.Context, username, password string) (Tokens, error) {
+	passwordHash, err := s.hasher.Hash(password)
 
 	if err != nil {
-		return "", err
+		return Tokens{}, err
 	}
 
-	return s.GenerateToken(id)
-
-}
-
-func (s *AuthService) GenerateToken(ID int) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &tokenClaims{
-		jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(tokenTTL).Unix(),
-			IssuedAt:  time.Now().Unix(),
-		},
-		ID,
-	})
-
-	return token.SignedString([]byte(signingKey))
-}
-
-func (s *AuthService) ParseToken(accessToken string) (int, error) {
-	token, err := jwt.ParseWithClaims(accessToken, &tokenClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("invalid signing method")
-		}
-
-		return []byte(signingKey), nil
-	})
-	if err != nil {
-		return 0, err
-	}
-
-	claims, ok := token.Claims.(*tokenClaims)
-	if !ok {
-		return 0, errors.New("token claims are not of type *tokenClaims")
-	}
-
-	return claims.UserId, nil
-}
-
-func (s *AuthService) Login(username, password string) (string, error) {
-	id, err := s.repo.GetIdByCredits(username, generatePasswordHash(password))
+	id, err := s.repo.GetIdByCredits(username, passwordHash)
 
 	if err != nil {
-		return "", err
+		return Tokens{}, err
 	}
 
-	return s.GenerateToken(id)
+	return s.createSession(ctx, strconv.Itoa(id))
 }
 
-func generatePasswordHash(password string) string {
-	hash := sha1.New()
-	hash.Write([]byte(password))
+func (s *AuthService) createSession(ctx context.Context, userId string) (Tokens, error) {
+	var (
+		res Tokens
+		err error
+	)
 
-	return fmt.Sprintf("%x", hash.Sum([]byte(salt)))
+	res.AccessToken, err = s.tokenManager.NewJWT(userId, s.accessTokenTTL)
+	if err != nil {
+		return res, err
+	}
+
+	res.RefreshToken, err = s.tokenManager.NewRefreshToken()
+	if err != nil {
+		return res, err
+	}
+
+	return res, err
 }

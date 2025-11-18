@@ -1,11 +1,18 @@
-package handler
+package v1
 
 import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kastuell/gotodoapp/internal/models"
+	"github.com/kastuell/gotodoapp/internal/domain"
 )
+
+func (h *Handler) initUserRoutes(api *gin.RouterGroup) {
+	user := api.Group("/user", h.userIdentity)
+	{
+		user.GET("", h.getMe)
+	}
+}
 
 func (h *Handler) getMe(c *gin.Context) {
 	userId, err := getUserId(c)
@@ -22,7 +29,7 @@ func (h *Handler) getMe(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, map[string]models.User{
+	c.JSON(http.StatusOK, map[string]domain.User{
 		"user": user,
 	})
 

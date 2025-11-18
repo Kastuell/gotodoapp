@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/kastuell/gotodoapp/internal/models"
+	"github.com/kastuell/gotodoapp/internal/domain"
 	"github.com/kastuell/gotodoapp/internal/repository"
 )
 
@@ -13,6 +13,6 @@ func NewUserService(repo repository.User) *UserService {
 	return &UserService{repo: repo}
 }
 
-func (s *UserService) GetMe(id int) (models.User, error) {
+func (s *UserService) GetMe(id int) (domain.User, error) {
 	return s.repo.GetById(id)
 }

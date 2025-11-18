@@ -5,7 +5,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/kastuell/gotodoapp/internal/database/postgres"
-	"github.com/kastuell/gotodoapp/internal/models"
+	"github.com/kastuell/gotodoapp/internal/domain"
 )
 
 type UserPostgres struct {
@@ -16,7 +16,7 @@ func NewUserPostgres(db *sqlx.DB) *UserPostgres {
 	return &UserPostgres{db: db}
 }
 
-func (r *UserPostgres) Create(user models.User) (int, error) {
+func (r *UserPostgres) Create(user domain.User) (int, error) {
 	var id int
 
 	query := fmt.Sprintf("INSERT INTO %s (name, username, password_hash) VALUES ($1, $2, $3) RETURNING id", postgres.UsersTable)
@@ -44,8 +44,8 @@ func (r *UserPostgres) GetIdByCredits(username, password_hash string) (int, erro
 	return id, nil
 }
 
-func (r *UserPostgres) GetById(id int) (models.User, error) {
-	var user models.User
+func (r *UserPostgres) GetById(id int) (domain.User, error) {
+	var user domain.User
 
 	query := fmt.Sprintf("SELECT username, name FROM %s WHERE id = $1", postgres.UsersTable)
 

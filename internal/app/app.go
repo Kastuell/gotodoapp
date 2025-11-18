@@ -12,13 +12,13 @@ import (
 	"github.com/kastuell/gotodoapp/internal/auth"
 	"github.com/kastuell/gotodoapp/internal/config"
 	"github.com/kastuell/gotodoapp/internal/database/postgres"
-	"github.com/kastuell/gotodoapp/internal/handler"
+	"github.com/kastuell/gotodoapp/internal/hash"
+	handler "github.com/kastuell/gotodoapp/internal/http"
 	"github.com/kastuell/gotodoapp/internal/repository"
 	"github.com/kastuell/gotodoapp/internal/server"
 	"github.com/kastuell/gotodoapp/internal/service"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 func Run(cfgPath string) {
@@ -44,6 +44,8 @@ func Run(cfgPath string) {
 		logrus.Fatalf("failed on connecting db: %s", err.Error())
 	}
 
+	hasher := hash.NewSHA1Hasher(cfg.Auth.PasswordSalt)
+
 	tokenManager, err := auth.NewManager(cfg.Auth.JWT.SigningKey)
 	if err != nil {
 		logrus.Error(err)
@@ -52,10 +54,16 @@ func Run(cfgPath string) {
 	}
 
 	repos := repository.NewRepository(db)
-	services := service.NewService(repos)
-	handlers := handler.NewHandler(services)
+	services := service.NewService(service.NewServiceDeps{
+		Repos:           repos,
+		TokenManager:    tokenManager,
+		Hasher:          hasher,
+		AccessTokenTTL:  cfg.Auth.JWT.AccessTokenTTL,
+		RefreshTokenTTL: cfg.Auth.JWT.RefreshTokenTTL,
+	})
+	handlers := handler.NewHandler(services, tokenManager)
 
-	srv := server.NewServer(cfg, handlers.InitRoutes())
+	srv := server.NewServer(cfg, handlers.InitRoutes(cfg))
 
 	go func() {
 		if err := srv.Run(); !errors.Is(err, http.ErrServerClosed) {
@@ -83,10 +91,4 @@ func Run(cfgPath string) {
 	if err := db.Close(); err != nil {
 		logrus.Errorf("error occured on db connection close: %s", err.Error())
 	}
-}
-
-func initConfig() error {
-	viper.AddConfigPath("configs")
-	viper.SetConfigName("config")
-	return viper.ReadInConfig()
 }
