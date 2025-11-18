@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"time"
 
 	"github.com/kastuell/gotodoapp/internal/auth"
@@ -20,8 +19,8 @@ type User interface {
 }
 
 type Auth interface {
-	Register(ctx context.Context, input domain.User) (Tokens, error)
-	Login(ctx context.Context, username, password string) (Tokens, error)
+	Register(input domain.User) (Tokens, error)
+	Login(username, password string) (Tokens, error)
 }
 
 type Todo interface {

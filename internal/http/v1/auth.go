@@ -29,7 +29,7 @@ func (h *Handler) register(c *gin.Context) {
 		return
 	}
 
-	tokens, err := h.services.Auth.Register(c, input)
+	tokens, err := h.services.Auth.Register(input)
 	if err != nil {
 		newErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return

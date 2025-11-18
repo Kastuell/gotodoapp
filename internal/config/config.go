@@ -101,6 +101,7 @@ func setFromEnv(cfg *Config) {
 	cfg.Auth.JWT.SigningKey = os.Getenv("JWT_SIGNING_KEY")
 
 	cfg.HTTP.Host = os.Getenv("HTTP_HOST")
+	cfg.HTTP.Port = os.Getenv("HTTP_PORT")
 
 	cfg.Environment = os.Getenv("APP_ENV")
 }

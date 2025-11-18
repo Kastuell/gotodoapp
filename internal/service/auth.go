@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"strconv"
 	"time"
 
@@ -36,7 +35,7 @@ func NewAuthService(deps NewAuthServiceDeps) *AuthService {
 	}
 }
 
-func (s *AuthService) Register(ctx context.Context, input domain.User) (Tokens, error) {
+func (s *AuthService) Register(input domain.User) (Tokens, error) {
 	passwordHash, err := s.hasher.Hash(input.Password)
 
 	if err != nil {
@@ -54,10 +53,10 @@ func (s *AuthService) Register(ctx context.Context, input domain.User) (Tokens, 
 		return Tokens{}, err
 	}
 
-	return s.createSession(ctx, strconv.Itoa(id))
+	return s.createSession(strconv.Itoa(id))
 }
 
-func (s *AuthService) Login(ctx context.Context, username, password string) (Tokens, error) {
+func (s *AuthService) Login(username, password string) (Tokens, error) {
 	passwordHash, err := s.hasher.Hash(password)
 
 	if err != nil {
@@ -70,10 +69,10 @@ func (s *AuthService) Login(ctx context.Context, username, password string) (Tok
 		return Tokens{}, err
 	}
 
-	return s.createSession(ctx, strconv.Itoa(id))
+	return s.createSession(strconv.Itoa(id))
 }
 
-func (s *AuthService) createSession(ctx context.Context, userId string) (Tokens, error) {
+func (s *AuthService) createSession(userId string) (Tokens, error) {
 	var (
 		res Tokens
 		err error
