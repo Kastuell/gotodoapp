@@ -9,46 +9,46 @@ import (
 	"github.com/kastuell/gotodoapp/internal/domain"
 )
 
-type TodoItemPostgres struct {
+type TodoPostgres struct {
 	db *sqlx.DB
 }
 
-func NewTodoItemPostgres(db *sqlx.DB) *TodoItemPostgres {
-	return &TodoItemPostgres{db: db}
+func NewTodoPostgres(db *sqlx.DB) *TodoPostgres {
+	return &TodoPostgres{db: db}
 }
 
-func (r *TodoItemPostgres) Create(listId int, item domain.Todo) (domain.Todo, error) {
+func (r *TodoPostgres) Create(listId int, input domain.CreateTodoInput) (domain.Todo, error) {
 	tx, err := r.db.Begin()
-	var todoItem domain.Todo
+	var todo domain.Todo
 	if err != nil {
-		return todoItem, err
+		return todo, err
 	}
 
-	createItemQuery := fmt.Sprintf("INSERT INTO %s (title, description) values ($1, $2)", postgres.TodoItemsTable)
+	createTodoQuery := fmt.Sprintf("INSERT INTO %s (title, description) values ($1, $2)", postgres.TodosTable)
 
-	row := tx.QueryRow(createItemQuery, item.Title, item.Description)
-	err = row.Scan(&todoItem)
-	if err != nil {
-		tx.Rollback()
-		return todoItem, err
-	}
-
-	createListItemsQuery := fmt.Sprintf("INSERT INTO %s (list_id, item_id) values ($1, $2)", postgres.ListsItemsTable)
-	_, err = tx.Exec(createListItemsQuery, listId, todoItem.ID)
+	row := tx.QueryRow(createTodoQuery, *input.Title, *input.Description)
+	err = row.Scan(&todo)
 	if err != nil {
 		tx.Rollback()
-		return todoItem, err
+		return todo, err
 	}
 
-	return todoItem, tx.Commit()
+	createListsTodosQuery := fmt.Sprintf("INSERT INTO %s (list_id, item_id) values ($1, $2)", postgres.ListsTodosTable)
+	_, err = tx.Exec(createListsTodosQuery, listId, todo.ID)
+	if err != nil {
+		tx.Rollback()
+		return todo, err
+	}
+
+	return todo, tx.Commit()
 }
 
-func (r *TodoItemPostgres) GetAllByUserId(userId, listId int) ([]domain.Todo, error) {
+func (r *TodoPostgres) GetAllByUserId(userId, listId int) ([]domain.Todo, error) {
 	var items []domain.Todo
 
 	query := fmt.Sprintf(`SELECT ti.id, ti.title, ti.description, ti.done FROM %s ti INNER JOIN %s li on li.item_id = ti.id
 									INNER JOIN %s ul on ul.list_id = li.list_id WHERE li.list_id = $1 AND ul.user_id = $2`,
-		postgres.TodoItemsTable, postgres.ListsItemsTable, postgres.UsersListsTable)
+		postgres.TodosTable, postgres.ListsTodosTable, postgres.UsersListsTable)
 
 	if err := r.db.Select(&items, query, listId, userId); err != nil {
 		return nil, err
@@ -57,28 +57,28 @@ func (r *TodoItemPostgres) GetAllByUserId(userId, listId int) ([]domain.Todo, er
 	return items, nil
 }
 
-func (r *TodoItemPostgres) GetById(userId, itemId int) (domain.Todo, error) {
+func (r *TodoPostgres) GetById(userId, todoId int) (domain.Todo, error) {
 	var item domain.Todo
 
 	query := fmt.Sprintf(`SELECT ti.id, ti.title, ti.description, ti.done FROM %s ti INNER JOIN %s li on li.item_id = ti.id
-	 INNER JOIN %s ul on ul.list_id == li.list_id WHERE ti.id = $1 AND ul.user_id = $2`, postgres.TodoItemsTable, postgres.ListsItemsTable, postgres.UsersListsTable)
+	 INNER JOIN %s ul on ul.list_id == li.list_id WHERE ti.id = $1 AND ul.user_id = $2`, postgres.TodosTable, postgres.ListsTodosTable, postgres.UsersListsTable)
 
-	if err := r.db.Get(&item, query, itemId, userId); err != nil {
+	if err := r.db.Get(&item, query, todoId, userId); err != nil {
 		return item, nil
 	}
 
 	return item, nil
 }
 
-func (r *TodoItemPostgres) Delete(userId, itemId int) error {
+func (r *TodoPostgres) Delete(userId, todoId int) error {
 	query := fmt.Sprintf(`DELETE FROM %s ti USING %s li, %s ul 
 									WHERE ti.id = li.item_id AND li.list_id = ul.list_id AND ul.user_id = $1 AND ti.id = $2`,
-		postgres.TodoItemsTable, postgres.ListsItemsTable, postgres.UsersListsTable)
-	_, err := r.db.Exec(query, userId, itemId)
+		postgres.TodosTable, postgres.ListsTodosTable, postgres.UsersListsTable)
+	_, err := r.db.Exec(query, userId, todoId)
 	return err
 }
 
-func (r *TodoItemPostgres) Update(userId, itemId int, input domain.UpdateTodoInput) error {
+func (r *TodoPostgres) Update(userId, todoId int, input domain.UpdateTodoInput) error {
 	setValues := make([]string, 0)
 	args := make([]interface{}, 0)
 	argId := 1
@@ -101,12 +101,18 @@ func (r *TodoItemPostgres) Update(userId, itemId int, input domain.UpdateTodoInp
 		argId++
 	}
 
+	if input.Style != nil {
+		setValues = append(setValues, fmt.Sprintf("style=$%d", argId))
+		args = append(args, *input.Style)
+		argId++
+	}
+
 	setQuery := strings.Join(setValues, ", ")
 
 	query := fmt.Sprintf(`UPDATE %s ti SET %s FROM %s li, %s ul
 									WHERE ti.id = li.item_id AND li.list_id = ul.list_id AND ul.user_id = $%d AND ti.id = $%d`,
-		postgres.TodoItemsTable, setQuery, postgres.ListsItemsTable, postgres.UsersListsTable, argId, argId+1)
-	args = append(args, userId, itemId)
+		postgres.TodosTable, setQuery, postgres.ListsTodosTable, postgres.UsersListsTable, argId, argId+1)
+	args = append(args, userId, todoId)
 
 	_, err := r.db.Exec(query, args...)
 	return err

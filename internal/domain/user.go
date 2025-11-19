@@ -9,6 +9,23 @@ type User struct {
 	Password string `json:"password,omitempty" db:"password_hash" binding:"required"`
 }
 
+type UsersList struct {
+	Id     int
+	UserId int
+	ListId int
+}
+
+type CreateUserInput struct {
+	Name     string `json:"name" binding:"required"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
+type GetIdByCreditsInput struct {
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+}
+
 type UpdateNameInput struct {
 	Name *string `json:"name"`
 }

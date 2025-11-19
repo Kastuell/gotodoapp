@@ -12,7 +12,7 @@ type User interface {
 }
 
 type Todo interface {
-	Create(listId int, item domain.Todo) (domain.Todo, error)
+	Create(listId int, item domain.CreateTodoInput) (domain.Todo, error)
 	GetAllByUserId(userId, listId int) ([]domain.Todo, error)
 	GetById(userId, itemId int) (domain.Todo, error)
 	Delete(userId, itemId int) error
@@ -35,7 +35,7 @@ type Repositories struct {
 
 func NewRepository(db *sqlx.DB) *Repositories {
 	return &Repositories{
-		Todo: NewTodoItemPostgres(db),
+		Todo: NewTodoPostgres(db),
 		User: NewUserPostgres(db),
 	}
 }

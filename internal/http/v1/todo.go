@@ -32,7 +32,7 @@ func (h *Handler) createTodo(c *gin.Context) {
 		return
 	}
 
-	var input domain.Todo
+	var input domain.CreateTodoInput
 	if err := c.BindJSON(&input); err != nil {
 		newErrorResponse(c, http.StatusBadRequest, err.Error())
 		return

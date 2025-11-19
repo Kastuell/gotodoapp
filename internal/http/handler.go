@@ -29,6 +29,8 @@ func (h *Handler) InitRoutes(cfg *config.Config) *gin.Engine {
 		corsMiddleware,
 	)
 
+	h.initAPI(router)
+
 	return router
 
 	// api := router.Group("/api")

@@ -19,12 +19,12 @@ type User interface {
 }
 
 type Auth interface {
-	Register(input domain.User) (Tokens, error)
-	Login(username, password string) (Tokens, error)
+	Register(input domain.CreateUserInput) (Tokens, error)
+	Login(input domain.GetIdByCreditsInput) (Tokens, error)
 }
 
 type Todo interface {
-	Create(userId, listId int, item domain.Todo) (domain.Todo, error)
+	Create(userId, listId int, input domain.CreateTodoInput) (domain.Todo, error)
 	GetAll(userId, listId int) ([]domain.Todo, error)
 	GetById(userId, itemId int) (domain.Todo, error)
 	Delete(userId, itemId int) error

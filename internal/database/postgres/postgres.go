@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/sirupsen/logrus"
 )
 
 const (
 	UsersTable      = "users"
-	TodoListsTable  = "todo_lists"
+	TodosTable      = "todos"
+	TodosListsTable = "todos_lists"
 	UsersListsTable = "users_lists"
-	TodoItemsTable  = "todo_items"
-	ListsItemsTable = "lists_items"
+	ListsTodosTable = "lists_todos"
 )
 
 type Config struct {
@@ -41,14 +42,27 @@ func NewPostgresDB(cfg Config) (*sqlx.DB, error) {
 }
 
 func initDB(db *sqlx.DB) {
-	createUsersTable(db)
-	createTodoListsTable(db)
-	createUsersListsTable(db)
-	createTodoItemsTable(db)
-	createListsItemsTable(db)
+	if err := createUserTable(db); err != nil {
+		logrus.Error(err)
+	}
+	if err := createTodoListTable(db); err != nil {
+		logrus.Error(err)
+	}
+	if err := createUsersListsTable(db); err != nil {
+		logrus.Error(err)
+	}
+	if err := createTodoTable(db); err != nil {
+		logrus.Error(err)
+	}
+	if err := createListsTodosTable(db); err != nil {
+		logrus.Error(err)
+	}
+	if err := createSessionTable(db); err != nil {
+		logrus.Error(err)
+	}
 }
 
-func createUsersTable(db *sqlx.DB) error {
+func createUserTable(db *sqlx.DB) error {
 	query := `CREATE TABLE IF NOT EXISTS users (
 		id serial       not null unique,
 		name          varchar(255) not null,
@@ -60,8 +74,8 @@ func createUsersTable(db *sqlx.DB) error {
 	return err
 }
 
-func createTodoListsTable(db *sqlx.DB) error {
-	query := `CREATE TABLE IF NOT EXISTS todo_lists (
+func createTodoListTable(db *sqlx.DB) error {
+	query := `CREATE TABLE IF NOT EXISTS todos_lists (
 		id          serial       not null unique,
 		title       varchar(255) not null,
 		description varchar(255)
@@ -73,32 +87,44 @@ func createTodoListsTable(db *sqlx.DB) error {
 
 func createUsersListsTable(db *sqlx.DB) error {
 	query := `CREATE TABLE IF NOT EXISTS users_lists (
-		id      serial                                           not null unique,
+		id      serial                                          not null unique,
 		user_id int references users (id) on delete cascade      not null,
-		list_id int references todo_lists (id) on delete cascade not null
+		list_id int references todos_lists (id) on delete cascade not null
 	);`
 
 	_, err := db.Exec(query)
 	return err
 }
 
-func createTodoItemsTable(db *sqlx.DB) error {
-	query := `CREATE TABLE IF NOT EXISTS todo_items (
+func createTodoTable(db *sqlx.DB) error {
+	query := `CREATE TABLE IF NOT EXISTS todos (
 		id          serial       not null unique,
 		title       varchar(255) not null,
 		description varchar(255),
-		done        boolean      not null default false
+		done        boolean      not null default false,
+		style       varchar(255) default 'default'
 	);`
 
 	_, err := db.Exec(query)
 	return err
 }
 
-func createListsItemsTable(db *sqlx.DB) error {
-	query := `CREATE TABLE IF NOT EXISTS lists_items (
+func createListsTodosTable(db *sqlx.DB) error {
+	query := `CREATE TABLE IF NOT EXISTS lists_todos (
 		id      serial                                           not null unique,
-		item_id int references todo_items (id) on delete cascade not null,
-		list_id int references todo_lists (id) on delete cascade not null
+		todo_id int references todos (id) on delete cascade not null,
+		list_id int references todos_lists (id) on delete cascade not null
+	);`
+
+	_, err := db.Exec(query)
+	return err
+}
+
+func createSessionTable(db *sqlx.DB) error {
+	query := `CREATE TABLE IF NOT EXISTS lists_todos (
+		id      serial                                           not null unique,
+		user_id int not null,
+		session_data json not null
 	);`
 
 	_, err := db.Exec(query)

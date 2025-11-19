@@ -14,13 +14,13 @@ func NewTodoService(repo repository.Todo, listRepo repository.TodoList) *TodoSer
 	return &TodoService{repo: repo, listRepo: listRepo}
 }
 
-func (s *TodoService) Create(userId, listId int, todo domain.Todo) (domain.Todo, error) {
+func (s *TodoService) Create(userId, listId int, input domain.CreateTodoInput) (domain.Todo, error) {
 	_, err := s.listRepo.GetById(userId, listId)
 	if err != nil {
 		return domain.Todo{}, err
 	}
 
-	return s.repo.Create(listId, todo)
+	return s.repo.Create(listId, input)
 }
 
 func (s *TodoService) GetAll(userId, listId int) ([]domain.Todo, error) {

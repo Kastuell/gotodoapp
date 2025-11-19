@@ -35,7 +35,7 @@ func NewAuthService(deps NewAuthServiceDeps) *AuthService {
 	}
 }
 
-func (s *AuthService) Register(input domain.User) (Tokens, error) {
+func (s *AuthService) Register(input domain.CreateUserInput) (Tokens, error) {
 	passwordHash, err := s.hasher.Hash(input.Password)
 
 	if err != nil {
@@ -56,14 +56,14 @@ func (s *AuthService) Register(input domain.User) (Tokens, error) {
 	return s.createSession(strconv.Itoa(id))
 }
 
-func (s *AuthService) Login(username, password string) (Tokens, error) {
-	passwordHash, err := s.hasher.Hash(password)
+func (s *AuthService) Login(input domain.GetIdByCreditsInput) (Tokens, error) {
+	passwordHash, err := s.hasher.Hash(input.Username)
 
 	if err != nil {
 		return Tokens{}, err
 	}
 
-	id, err := s.repo.GetIdByCredits(username, passwordHash)
+	id, err := s.repo.GetIdByCredits(input.Username, passwordHash)
 
 	if err != nil {
 		return Tokens{}, err
