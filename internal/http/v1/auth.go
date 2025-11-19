@@ -12,12 +12,16 @@ type tokenResponse struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
+type refreshInput struct {
+	RefreshToken string `json:"refreshToken" binding:"required"`
+}
+
 func (h *Handler) initAuthRoutes(api *gin.RouterGroup) {
 	auth := api.Group("/auth")
 	{
 		auth.POST("/register", h.register)
 		auth.POST("/login", h.login)
-		// auth.POST("/refresh", h.userRefresh)
+		auth.POST("/refresh", h.refresh)
 	}
 }
 
@@ -59,5 +63,27 @@ func (h *Handler) login(c *gin.Context) {
 	c.JSON(http.StatusOK, tokenResponse{
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken,
+	})
+}
+
+func (h *Handler) refresh(c *gin.Context) {
+	var input refreshInput
+
+	if err := c.BindJSON(&input); err != nil {
+		newErrorResponse(c, http.StatusBadRequest, "invalid input body")
+
+		return
+	}
+
+	res, err := h.services.Auth.UpdateTokens(input.RefreshToken)
+	if err != nil {
+		newErrorResponse(c, http.StatusInternalServerError, err.Error())
+
+		return
+	}
+
+	c.JSON(http.StatusOK, tokenResponse{
+		AccessToken:  res.AccessToken,
+		RefreshToken: res.RefreshToken,
 	})
 }

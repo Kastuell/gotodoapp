@@ -53,7 +53,7 @@ func (s *AuthService) Register(input domain.CreateUserInput) (Tokens, error) {
 		return Tokens{}, err
 	}
 
-	return s.createSession(strconv.Itoa(id))
+	return s.createTokens(strconv.Itoa(id))
 }
 
 func (s *AuthService) Login(input domain.GetIdByCreditsInput) (Tokens, error) {
@@ -69,10 +69,35 @@ func (s *AuthService) Login(input domain.GetIdByCreditsInput) (Tokens, error) {
 		return Tokens{}, err
 	}
 
-	return s.createSession(strconv.Itoa(id))
+	return s.createTokens(strconv.Itoa(id))
 }
 
-func (s *AuthService) createSession(userId string) (Tokens, error) {
+func (s *AuthService) UpdateTokens(refreshToken string) (Tokens, error) {
+	var (
+		res Tokens
+		err error
+	)
+
+	userId, err := s.tokenManager.Parse(refreshToken)
+
+	if err != nil {
+		return Tokens{}, err
+	}
+
+	res.AccessToken, err = s.tokenManager.NewJWT(userId, s.accessTokenTTL)
+	if err != nil {
+		return res, err
+	}
+
+	res.RefreshToken, err = s.tokenManager.NewJWT(userId, s.refreshTokenTTL)
+	if err != nil {
+		return res, err
+	}
+
+	return res, err
+}
+
+func (s *AuthService) createTokens(userId string) (Tokens, error) {
 	var (
 		res Tokens
 		err error
@@ -83,7 +108,7 @@ func (s *AuthService) createSession(userId string) (Tokens, error) {
 		return res, err
 	}
 
-	res.RefreshToken, err = s.tokenManager.NewRefreshToken()
+	res.RefreshToken, err = s.tokenManager.NewJWT(userId, s.refreshTokenTTL)
 	if err != nil {
 		return res, err
 	}

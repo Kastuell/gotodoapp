@@ -57,9 +57,6 @@ func initDB(db *sqlx.DB) {
 	if err := createListsTodosTable(db); err != nil {
 		logrus.Error(err)
 	}
-	if err := createSessionTable(db); err != nil {
-		logrus.Error(err)
-	}
 }
 
 func createUserTable(db *sqlx.DB) error {
@@ -114,17 +111,6 @@ func createListsTodosTable(db *sqlx.DB) error {
 		id      serial                                           not null unique,
 		todo_id int references todos (id) on delete cascade not null,
 		list_id int references todos_lists (id) on delete cascade not null
-	);`
-
-	_, err := db.Exec(query)
-	return err
-}
-
-func createSessionTable(db *sqlx.DB) error {
-	query := `CREATE TABLE IF NOT EXISTS lists_todos (
-		id      serial                                           not null unique,
-		user_id int not null,
-		session_data json not null
 	);`
 
 	_, err := db.Exec(query)

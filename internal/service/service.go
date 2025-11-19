@@ -21,6 +21,7 @@ type User interface {
 type Auth interface {
 	Register(input domain.CreateUserInput) (Tokens, error)
 	Login(input domain.GetIdByCreditsInput) (Tokens, error)
+	UpdateTokens(refreshToken string) (Tokens, error)
 }
 
 type Todo interface {
